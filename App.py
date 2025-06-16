@@ -24,7 +24,7 @@ def generate_frames():
     morse = "" # the morse code conveyed by the user's right eyelid.
     hasil = "" # the alphabetic translation of said morse code.
     meremAvg = 0 # Average of normalizedRatios which are expected to be filled with merem normalized ratios as a way to calibrate. 
-    sd = 0 # standard deviation of meremAvg. float32 or 10^-6 precision.
+    sd = 0 # standard deviation of meremAvg. float32 or 10^-6 precision.`
 
     while True:
         ## read the camera frame
@@ -236,8 +236,9 @@ class FaceMeshDetector:
         self.results = self.faceMesh.process(self.imgRGB)
         # faces = []
         face = []
-        # if self.results.multi_face_landmarks:
-        faceLms = self.results.multi_face_landmarks[0]
+        faceLms = self.results
+        if self.results.multi_face_landmarks:
+            faceLms = self.results.multi_face_landmarks[0]
         for id,lm in enumerate(faceLms.landmark):
             if id in self.target:
                 ih, iw, ic = img.shape
