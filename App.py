@@ -31,6 +31,9 @@ def toggle_stream():
         pause_event.set()    # Resume
         return {'status': 'playing'}
 
+# @app.route('/calibrate', methods=['GET'])
+# def calibrate():
+
 def generate_frames():
     cap = cv2.VideoCapture(0)
 
