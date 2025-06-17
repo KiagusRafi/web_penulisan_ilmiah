@@ -4,12 +4,14 @@ import mediapipe as mp
 import math
 import time
 import numpy as np
+import threading
 #render_template bakal otomatis ke folder templates.
 
 # WSGI (Web Server Gateway Interface) 
 app = Flask(__name__)
 
-start_stop = 1
+pause_event = threading.Event()
+pause_event.set()
 
 # ini namanya "decorator"
 @app.route('/')
@@ -20,6 +22,14 @@ def index():
 def video():
     return Response(generate_frames(),mimetype='multipart/x-mixed-replace; boundary=frame')
 
+@app.route('/toggle_stream', methods=['POST'])
+def toggle_stream():
+    if pause_event.is_set():
+        pause_event.clear()  # Pause
+        return {'status': 'paused'}
+    else:
+        pause_event.set()    # Resume
+        return {'status': 'playing'}
 
 def generate_frames():
     cap = cv2.VideoCapture(0)
@@ -39,6 +49,9 @@ def generate_frames():
     sd = 0 # standard deviation of meremAvg. float32 or 10^-6 precision.`
 
     while True:
+
+        pause_event.wait()
+
         ## read the camera frame
         success, img = cap.read()
 
@@ -140,6 +153,8 @@ def generate_frames():
         # idk
         yield(b'--frame\r\n'
                    b'Content-Type: image/jpeg\r\n\r\n' + img + b'\r\n')
+    
+    cap.release()
 
 
 

@@ -6,13 +6,13 @@
     <title>kedapkedipnitnut</title>
     <link rel="icon" href="/assets/my_apolocheese.png" />
 
-    <script
+    <!-- <script
       src="https://code.jquery.com/jquery-3.7.1.min.js"
       integrity="sha256-/JqT3SQfawRcv/BIHPThkBvs0OEvtFFmqPF/lYI/Cxo="
       crossorigin="anonymous"
     ></script>
 
-    <script src="/Main.js"></script>
+    <script src="/Main.js"></script> -->
   </head>
   <body>
     <h1>-.- . -.. .- .--. -.- . -.. .. .--.</h1>
@@ -25,7 +25,22 @@
       />
     </div>
     <div id="right-side">
-      <button id="start-stop-button" onclick="startStop()">stop/start</button>
+      <button id="toggleBtn">Pause</button>
+
+      <script>
+        const btn = document.getElementById("toggleBtn");
+        let isPaused = false;
+
+        btn.addEventListener("click", () => {
+          fetch("/toggle_stream", { method: "POST" })
+            .then((res) => res.json())
+            .then((data) => {
+              isPaused = !isPaused;
+              btn.textContent = isPaused ? "Resume" : "Pause";
+            })
+            .catch((err) => console.error("Error toggling:", err));
+        });
+      </script>
     </div>
   </body>
 </html>
