@@ -1,4 +1,4 @@
-from flask import Flask, render_template, Response
+from flask import Flask, render_template, Response, request
 import cv2
 import mediapipe as mp
 import math
@@ -8,6 +8,18 @@ import numpy as np
 
 # WSGI (Web Server Gateway Interface) 
 app = Flask(__name__)
+
+start_stop = 1
+
+# ini namanya "decorator"
+@app.route('/')
+def index():
+    return render_template('index.html')
+
+@app.route('/video')
+def video():
+    return Response(generate_frames(),mimetype='multipart/x-mixed-replace; boundary=frame')
+
 
 def generate_frames():
     cap = cv2.VideoCapture(0)
@@ -33,93 +45,92 @@ def generate_frames():
         if not success:
             break
         
-        face = detector.findFaceMesh(img) # returning array of 467(more or less) landmark coordinates of a (singular) person's face in the image. 
-        
-        # the targeted landmark coordinates. 
-        # 6 specific landmark coordinates located around the perimeter of the right eye.
-        # indexed by the findFaceMesh() method which only relevant in this particular module.  
-        # naturally the order highly matters.
-        kananLmAtas = face[5] #5
-        kananLmBawah = face[2] #2
-        kananLmAtas2 = face[4] #4
-        kananLmBawah2 = face[3] #3
-        kananLmOuter = face[0] #0
-        kananLmInner = face[1] #1
+        find, face = detector.findFaceMesh(img) # returning array of 467(more or less) landmark coordinates of a (singular) person's face in the image. 
+        if find == True:
 
-        # finding the distance of each elaborate pair of landmarks. these distances/lines will be used to calculate "Eye Aspect Ratio" 
-        kananVertikal = detector.findDistance(kananLmAtas, kananLmBawah)
-        kananVertikal2 = detector.findDistance(kananLmAtas2, kananLmBawah2)
-        kananHorizontal = detector.findDistance(kananLmInner, kananLmOuter)
+            # the targeted landmark coordinates. 
+            # 6 specific landmark coordinates located around the perimeter of the right eye.
+            # indexed by the findFaceMesh() method which only relevant in this particular module.  
+            # naturally the order highly matters.
+            kananLmAtas = face[5] #5
+            kananLmBawah = face[2] #2
+            kananLmAtas2 = face[4] #4
+            kananLmBawah2 = face[3] #3
+            kananLmOuter = face[0] #0
+            kananLmInner = face[1] #1
 
-        # drawing said distances as lines on the frame/image. 
-        cv2.line(img, kananLmAtas, kananLmBawah, (0,0,255), 1)
-        cv2.line(img, kananLmAtas2, kananLmBawah2, (0,0,255), 1)
-        cv2.line(img, kananLmInner, kananLmOuter, (0,0,255), 1)
+            # finding the distance of each spesific pair of landmarks. these distances/lines will be used to calculate "Eye Aspect Ratio". 
+            kananVertikal = detector.findDistance(kananLmAtas, kananLmBawah)
+            kananVertikal2 = detector.findDistance(kananLmAtas2, kananLmBawah2)
+            kananHorizontal = detector.findDistance(kananLmInner, kananLmOuter)
 
-        # calculating EAR as percentage.
-        ratio = ((kananVertikal+kananVertikal2)/(2*kananHorizontal))*100
+            # drawing said distances as lines on the frame/image. 
+            cv2.line(img, kananLmAtas, kananLmBawah, (0,0,255), 1)
+            cv2.line(img, kananLmAtas2, kananLmBawah2, (0,0,255), 1)
+            cv2.line(img, kananLmInner, kananLmOuter, (0,0,255), 1)
 
-        # normalizing ratios by averaging 10 frames, including the current one.
-        if len(ratios) > 10:
-            ratios.pop(0)
+            # calculating EAR as percentage.
+            ratio = ((kananVertikal+kananVertikal2)/(2*kananHorizontal))*100
 
-        ratios.append(ratio)
-        nRatio = np.mean(ratios) # normalized ratio.
+            # normalizing ratios by averaging 10 frames, including the current one.
+            if len(ratios) > 10:
+                ratios.pop(0)
 
-        # the average of normalized ratio. expected to be filled with merem ones as a way to calibrate this system.
-        # only accessed at the first time the app opens.
-        if len(normalizedRatios) < 100:
-            normalizedRatios.append(nRatio)
-            meremAvg = np.mean(normalizedRatios)
+            ratios.append(ratio)
+            nRatio = np.mean(ratios) # normalized ratio.
 
-            sd = np.std(ratios, dtype = np.float32) # the standard deviation.
-            
-            # to write calibration progress on the live feed images. 
-            cv2.putText(img, f"tunggu: {len(ratios)}/100", (500, 20), cv2.FONT_ITALIC, 1, (255,255,0), 3)
-        else:
-            # z score : nilai deviasi dari titik data relatif rata-rata.
-            # contohnya z score 27 dari mean 23 dan sd 2 = 27-23/2 = 2 poin (melenceng sejauh 2 sd dari mean)    
-            zScore = (nRatio-meremAvg)/sd
+            # the average of normalized ratio. expected to be filled with merem ones as a way to calibrate this system.
+            # only accessed at the first time the app opens.
+            if len(normalizedRatios) < 100:
+                normalizedRatios.append(nRatio)
+                meremAvg = np.mean(normalizedRatios)
 
-            if zScore > 1: # if melek
-                # to add a white space if the user melek for 2s or more.
-                # the decrypt() function only expects 2 space maximum in the end of string "morse" (2 spaces will be translated as 1, and 1 space will be the sign of the next letter).
-                # given more, it will break.
-                # blame whoever made that in geeksforgeeks.
-                if abs(time.time()-swMelek) >= 2:
-                    swMelek = time.time()
-                    if morse[-2:] != "  ":
-                        morse = morse + " "
-
-                if melek == False: # and if merem previously
-                    # it's a sign of user done blinking
-                    morse = morse + kedipmorse(swMerem) # parse that signal with kedipmorse() and the starting merem time.
-
-                swMerem = 0 # resetting the merem stopwatch, because it's melek now.
-                melek = True # set the status.
-
-            else: # if merem
-                if melek == True: # and if melek previously
-                    swMerem = time.time() # start the merem stopwatch (counting merem duration).
-
-                swMelek = time.time() # reset the melek stopwatch.
-
-                melek = False # set the status.
-
-
-            hasil = decrypt(morse) # decrypting the given signals so far.
-
-            # just to write the melek status, conveyed morse code, and it's alphabetic translation. 
-            if melek:
-                warna = (0,255,0)
+                sd = np.std(ratios, dtype = np.float32) # the standard deviation.
+                
+                # to write calibration progress on the live feed images. 
+                cv2.putText(img, f"tunggu: {len(ratios)}/100", (500, 20), cv2.FONT_ITALIC, 1, (255,255,0), 3)
             else:
-                warna = (0,0,255)
+                # z score : nilai deviasi dari titik data relatif rata-rata.
+                # contohnya z score 27 dari mean 23 dan sd 2 = 27-23/2 = 2 poin (melenceng sejauh 2 sd dari mean)    
+                zScore = (nRatio-meremAvg)/sd
 
-            cv2.putText(img, str(melek), (10, 70), cv2.FONT_ITALIC, 3, warna, 3)
-            cv2.putText(img, morse, (70, 10), cv2.FONT_HERSHEY_PLAIN, 1, (255, 0, 255), 1)
-            cv2.putText(img, hasil, (70, 30), cv2.FONT_HERSHEY_PLAIN, 1, (255, 0, 0), 1)
+                if zScore > 1: # if melek
+                    # to add a white space if the user melek for 2s or more.
+                    # the decrypt() function only expects 2 space maximum in the end of string "morse" (2 spaces will be translated as 1, and 1 space will be the sign of the next letter).
+                    # given more, it will break.
+                    # blame whoever made that in geeksforgeeks.
+                    if abs(time.time()-swMelek) >= 2:
+                        swMelek = time.time()
+                        if morse[-2:] != "  ":
+                            morse = morse + " "
 
-        # imgRGB = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
+                    if melek == False: # and if merem previously
+                        # it's a sign of user done blinking
+                        morse = morse + kedipmorse(swMerem) # parse that signal with kedipmorse() and the starting merem time.
+
+                    swMerem = 0 # resetting the merem stopwatch, because it's melek now.
+                    melek = True # set the status.
+
+                else: # if merem
+                    if melek == True: # and if melek previously
+                        swMerem = time.time() # start the merem stopwatch (counting merem duration).
+
+                    swMelek = time.time() # reset the melek stopwatch.
+
+                    melek = False # set the status.
+
+
+                hasil = decrypt(morse) # decrypting the given signals so far.
+
+                # just to write the melek status, conveyed morse code, and it's alphabetic translation. 
+                if melek:
+                    warna = (0,255,0)
+                else:
+                    warna = (0,0,255)
+
+                cv2.putText(img, str(melek), (10, 70), cv2.FONT_ITALIC, 3, warna, 3)
+                cv2.putText(img, morse, (70, 10), cv2.FONT_HERSHEY_PLAIN, 1, (255, 0, 255), 1)
+                cv2.putText(img, hasil, (70, 30), cv2.FONT_HERSHEY_PLAIN, 1, (255, 0, 0), 1)
 
 
         # live feeding the frames/img.jpg to the page. 
@@ -131,15 +142,6 @@ def generate_frames():
                    b'Content-Type: image/jpeg\r\n\r\n' + img + b'\r\n')
 
 
-# ini namanya "decorator"
-@app.route('/')
-def index(): 
-    #kolor babe
-    return render_template('index.html')
-
-@app.route('/video')
-def video():
-    return Response(generate_frames(),mimetype='multipart/x-mixed-replace; boundary=frame')
 
 
 ###ajnsabdhbhb
@@ -233,22 +235,20 @@ class FaceMeshDetector:
         :return: Image with or without drawings
         """
         self.imgRGB = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
-        self.results = self.faceMesh.process(self.imgRGB)
+        results = self.faceMesh.process(self.imgRGB)
         # faces = []
         face = []
-        faceLms = self.results
-        if self.results.multi_face_landmarks:
-            faceLms = self.results.multi_face_landmarks[0]
-        for id,lm in enumerate(faceLms.landmark):
-            if id in self.target:
-                ih, iw, ic = img.shape
-                x, y = int(lm.x * iw), int(lm.y * ih)
-                # face.append([x, y])
-                face.append([x,y])
-            else : pass
-            # faces.append(face)
-        # print(face)
-        return face
+        detection = False
+        if results.multi_face_landmarks:
+            detection = True    
+            faceLms = results.multi_face_landmarks[0]
+            for id,lm in enumerate(faceLms.landmark):
+                if id in self.target:
+                    ih, iw, ic = img.shape
+                    x, y = int(lm.x * iw), int(lm.y * ih)
+                    face.append([x,y])
+                else : pass
+        return detection, face
 
     def findDistance(self, p1, p2):
         x1, y1 = p1

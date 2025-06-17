@@ -5,15 +5,27 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>kedapkedipnitnut</title>
     <link rel="icon" href="/assets/my_apolocheese.png" />
+
+    <script
+      src="https://code.jquery.com/jquery-3.7.1.min.js"
+      integrity="sha256-/JqT3SQfawRcv/BIHPThkBvs0OEvtFFmqPF/lYI/Cxo="
+      crossorigin="anonymous"
+    ></script>
+
+    <script src="/Main.js"></script>
   </head>
   <body>
     <h1>-.- . -.. .- .--. -.- . -.. .. .--.</h1>
+    <br />
     <div id="captured-frame">
       <img
         src="{{ url_for('video') }}"
         alt="harusnya ada gambar disini"
         width="50%"
       />
+    </div>
+    <div id="right-side">
+      <button id="start-stop-button" onclick="startStop()">stop/start</button>
     </div>
   </body>
 </html>
