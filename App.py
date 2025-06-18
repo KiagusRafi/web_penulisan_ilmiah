@@ -163,7 +163,7 @@ def generate_frames():
                             swMelek = time.time()
                             if morse[-2:] != "  ":
                                 morse += " "
-                                text_update_event.set()
+                                text_update_event.set() 
 
                         if melek == False: # and if merem previously
                             # it's a sign of user done blinking
@@ -182,7 +182,7 @@ def generate_frames():
                     melek = False # set the status.
 
                 with text_lock:
-                    # global hasil
+                    global hasil
                     hasil = decrypt(morse) # decrypting the given signals so far.
                     text_update_event.set()
 
