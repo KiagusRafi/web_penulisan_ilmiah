@@ -14,13 +14,14 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function calibrate(){
-        fetch('')
-    }
-    
-    // Example placeholder for another function
-    function anotherFeature() {
-        console.log("New feature added.");
+        fetch('/calibrate', { method: 'POST' })
+        .then(res => res.json())
+        .then(data => {
+            console.log('Data reset:', data.status);
+        })
+        .catch(err => console.error('Reset error:', err));
     }
     
     btn.addEventListener('click', pause);
+    calibrateButton.addEventListener('click', calibrate)
 });

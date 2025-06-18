@@ -10,8 +10,17 @@ import threading
 # WSGI (Web Server Gateway Interface) 
 app = Flask(__name__)
 
+# for pausing purpose.
 pause_event = threading.Event()
 pause_event.set()
+
+# for locking the thread, to reset the calibration values.
+reset_lock = threading.Lock()
+reset_requested = threading.Event()
+
+normalizedRatios = [] # list of 100 normalized "merem" ratios, which comes from averaging "ratios" stack. filled once at the start of the program.
+nRatioAvg = 0 # Average of normalizedRatios which are expected to be filled with merem normalized ratios as a way to calibrate.
+sd = 0 # standard deviation of meremAvg. float32 or 10^-6 precision.`
 
 # ini namanya "decorator"
 @app.route('/')
@@ -31,8 +40,10 @@ def toggle_stream():
         pause_event.set()    # Resume
         return {'status': 'playing'}
 
-# @app.route('/calibrate', methods=['GET'])
-# def calibrate():
+@app.route('/calibrate', methods=['POST'])
+def reset_data():
+    reset_requested.set()
+    return {'status': 'reset done'}
 
 def generate_frames():
     cap = cv2.VideoCapture(0)
@@ -41,19 +52,24 @@ def generate_frames():
     detector = FaceMeshDetector(target=idList)
 
     ratios = [] # stack filled with 10 ratios from 10 frames. constantly updated.
-    normalizedRatios = [] # list of 100 normalized "merem" ratios, which comes from averaging "ratios" stack. filled once at the start of the program.
 
     melek = False # current frame eyelid status.
     swMerem = 0 # stopwatch for merem.
     swMelek = time.time() # stop watch for melek.
     morse = "" # the morse code conveyed by the user's right eyelid.
     hasil = "" # the alphabetic translation of said morse code.
-    meremAvg = 0 # Average of normalizedRatios which are expected to be filled with merem normalized ratios as a way to calibrate. 
-    sd = 0 # standard deviation of meremAvg. float32 or 10^-6 precision.`
 
     while True:
-
+        # pausing point. pausing event handler.
         pause_event.wait()
+
+        # calibrate request handler.
+        if reset_requested.is_set():
+            with reset_lock:
+                normalizedRatios.clear()
+                nRatioAvg = 0
+                sd = 0
+                reset_requested.clear()
 
         ## read the camera frame
         success, img = cap.read()
@@ -99,7 +115,7 @@ def generate_frames():
             # only accessed at the first time the app opens.
             if len(normalizedRatios) < 100:
                 normalizedRatios.append(nRatio)
-                meremAvg = np.mean(normalizedRatios)
+                nRatioAvg = np.mean(normalizedRatios)
 
                 sd = np.std(ratios, dtype = np.float32) # the standard deviation.
                 
@@ -108,7 +124,7 @@ def generate_frames():
             else:
                 # z score : nilai deviasi dari titik data relatif rata-rata.
                 # contohnya z score 27 dari mean 23 dan sd 2 = 27-23/2 = 2 poin (melenceng sejauh 2 sd dari mean)    
-                zScore = (nRatio-meremAvg)/sd
+                zScore = (nRatio-nRatioAvg)/sd
 
                 if zScore > 1: # if melek
                     # to add a white space if the user melek for 2s or more.
@@ -150,7 +166,7 @@ def generate_frames():
 
 
         # live feeding the frames/img.jpg to the page. 
-        ret, buffer = cv2.imencode('.jpg',img)
+        _, buffer = cv2.imencode('.jpg',img)
         img = buffer.tobytes()
 
         # idk
