@@ -9,16 +9,21 @@
   <body>
     <h1>-.- . -.. .- .--. -.- . -.. .. .--.</h1>
     <br />
-    <div id="captured-frame">
+    <div id="frame-container">
       <img
+        id="frames"
+        style="display: block"
         src="{{ url_for('video') }}"
         alt="harusnya ada gambar disini"
         width="50%"
       />
+      <div id="img-alter" style="display: none"></div>
     </div>
     <div id="right-side">
       <button id="toggleBtn">Pause</button>
-      <button id="calibrate-button">Calibrate</button>
+      <button id="calibrate-button" style="display: inline-block">
+        Calibrate
+      </button>
     </div>
     <!-- Load external script -->
     <script src="{{ url_for('static', filename='script.js') }}"></script>

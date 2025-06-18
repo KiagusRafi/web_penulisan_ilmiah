@@ -5,6 +5,7 @@ import math
 import time
 import numpy as np
 import threading
+import asyncio
 #render_template bakal otomatis ke folder templates.
 
 # WSGI (Web Server Gateway Interface) 
