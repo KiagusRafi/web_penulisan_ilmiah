@@ -5,7 +5,7 @@ import math
 import time
 import numpy as np
 import threading
-import asyncio
+import json
 #render_template bakal otomatis ke folder templates.
 
 # WSGI (Web Server Gateway Interface) 
@@ -22,6 +22,11 @@ reset_requested = threading.Event()
 normalizedRatios = [] # list of 100 normalized "merem" ratios, which comes from averaging "ratios" stack. filled once at the start of the program.
 nRatioAvg = 0 # Average of normalizedRatios which are expected to be filled with merem normalized ratios as a way to calibrate.
 sd = 0 # standard deviation of meremAvg. float32 or 10^-6 precision.`
+
+text_lock = threading.Lock() # to lock the resources as the server sends morse and hasil to the page.
+text_update_event = threading.Event()
+morse = "" # the morse code conveyed by the user's right eyelid.
+hasil = "" # the alphabetic translation of said morse code.
 
 # ini namanya "decorator"
 @app.route('/')
@@ -46,6 +51,28 @@ def reset_data():
     reset_requested.set()
     return {'status': 'reset done'}
 
+# Server-Sent Events (SSE)
+# to send hasil and morse strings to the page.
+@app.route('/results')
+def results():
+    def event_stream():
+        while True:
+            # Wait until text is updated
+            text_update_event.wait()
+            text_update_event.clear()
+
+            with text_lock:
+                payload = {
+                    "hasil": hasil,
+                    "morse": morse
+                }
+
+                data = json.dumps(payload)
+
+                yield f"data: {data}\n\n"
+
+    return Response(event_stream(), content_type='text/event-stream')
+
 def generate_frames():
     cap = cv2.VideoCapture(0)
 
@@ -57,8 +84,6 @@ def generate_frames():
     melek = False # current frame eyelid status.
     swMerem = 0 # stopwatch for merem.
     swMelek = time.time() # stop watch for melek.
-    morse = "" # the morse code conveyed by the user's right eyelid.
-    hasil = "" # the alphabetic translation of said morse code.
 
     while True:
         # pausing point. pausing event handler.
@@ -132,14 +157,18 @@ def generate_frames():
                     # the decrypt() function only expects 2 space maximum in the end of string "morse" (2 spaces will be translated as 1, and 1 space will be the sign of the next letter).
                     # given more, it will break.
                     # blame whoever made that in geeksforgeeks.
-                    if abs(time.time()-swMelek) >= 2:
-                        swMelek = time.time()
-                        if morse[-2:] != "  ":
-                            morse = morse + " "
+                    with text_lock:
+                        global morse
+                        if abs(time.time()-swMelek) >= 2:
+                            swMelek = time.time()
+                            if morse[-2:] != "  ":
+                                morse += " "
+                                text_update_event.set()
 
-                    if melek == False: # and if merem previously
-                        # it's a sign of user done blinking
-                        morse = morse + kedipmorse(swMerem) # parse that signal with kedipmorse() and the starting merem time.
+                        if melek == False: # and if merem previously
+                            # it's a sign of user done blinking
+                            morse += kedipmorse(swMerem) # parse that signal with kedipmorse() and the starting merem time.
+                            text_update_event.set()
 
                     swMerem = 0 # resetting the merem stopwatch, because it's melek now.
                     melek = True # set the status.
@@ -152,19 +181,10 @@ def generate_frames():
 
                     melek = False # set the status.
 
-
-                hasil = decrypt(morse) # decrypting the given signals so far.
-
-                # just to write the melek status, conveyed morse code, and it's alphabetic translation. 
-                if melek:
-                    warna = (0,255,0)
-                else:
-                    warna = (0,0,255)
-
-                cv2.putText(img, str(melek), (10, 70), cv2.FONT_ITALIC, 3, warna, 3)
-                cv2.putText(img, morse, (70, 10), cv2.FONT_HERSHEY_PLAIN, 1, (255, 0, 255), 1)
-                cv2.putText(img, hasil, (70, 30), cv2.FONT_HERSHEY_PLAIN, 1, (255, 0, 0), 1)
-
+                with text_lock:
+                    # global hasil
+                    hasil = decrypt(morse) # decrypting the given signals so far.
+                    text_update_event.set()
 
         # live feeding the frames/img.jpg to the page. 
         _, buffer = cv2.imencode('.jpg',img)
@@ -294,4 +314,4 @@ class FaceMeshDetector:
         return length
 
 if __name__=="__main__":
-    app.run()
+    app.run(threaded=True)

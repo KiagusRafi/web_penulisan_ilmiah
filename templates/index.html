@@ -5,9 +5,18 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>kedapkedipnitnut</title>
     <link rel="icon" href="/assets/my_apolocheese.png" />
+    <!-- stylesheet -->
+    <!-- <link
+      rel="stylesheet"
+      href="{{ url_for('static', filename='css/styles.css') }}"
+    /> -->
+    <!-- <link rel="stylesheet" href="/static/css/styles.css" /> -->
+    <!-- Load external script -->
+    <script src="{{ url_for('static', filename='script.js') }}"></script>
   </head>
   <body>
-    <h1>-.- . -.. .- .--. -.- . -.. .. .--.</h1>
+    <h1>welcome to pubg mobile</h1>
+    <h3>-.- . -.. .- .--. -.- . -.. .. .--.</h3>
     <br />
     <div id="frame-container">
       <img
@@ -24,8 +33,8 @@
       <button id="calibrate-button" style="display: inline-block">
         Calibrate
       </button>
+      <div class="text-box" id="morse"></div>
+      <div class="text-box" id="alphabet"></div>
     </div>
-    <!-- Load external script -->
-    <script src="{{ url_for('static', filename='script.js') }}"></script>
   </body>
 </html>

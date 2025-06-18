@@ -2,9 +2,22 @@ document.addEventListener('DOMContentLoaded', () => {
     const btn = document.getElementById('toggleBtn');
     const calibrateButton = document.getElementById('calibrate-button');
     const imgAlter = document.getElementById('img-alter');
-    const img = document.getElementById('frames')
-    let showVideo = true
+    const img = document.getElementById('frames');
+    const morse = document.getElementById('morse');
+    const resText = document.getElementById('resText');
+    const eventSource = new EventSource('/results');
+    let showVideo = true;
     let isPaused = false;
+
+    eventSource.onmessage = (event) => {
+        try {
+            const data = JSON.parse(event.data);
+            morse.innerHTML = `<h1>${data.morse}</h1>`
+            resText.innerHTML = `<h1>${data.hasil}</h1>`
+        } catch (e) {
+            console.error("Failed to parse JSON:", e);
+        };
+    };
 
     function videoToggle(show=true, replacement=""){
         showVideo = show
