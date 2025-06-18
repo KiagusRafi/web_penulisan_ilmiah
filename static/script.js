@@ -34,7 +34,7 @@ document.addEventListener('DOMContentLoaded', () => {
     function calibrate(){
         // pausing the video a bit
         timeLeft = 3;
-        videoToggle(false, "<h1>tutup mata dalam</h1>:")
+        // videoToggle(false)
         // imgAlter.textContent = "tutup mata dalam:"
 
         const timer = setInterval(() => {
@@ -43,20 +43,21 @@ document.addEventListener('DOMContentLoaded', () => {
                 imgAlter.innerHTML = "<h1>Time's up!</h1>"
                 // imgAlter.textContent = "Time's up!";
                 setTimeout(()=>{
-                    
                     // the fetch method who're actually sending calibration request.
                     fetch('/calibrate', { method: 'POST' })
                     .then(res => res.json())
                     .then(data => {
+                        if (isPaused){
+                            pause()
+                        }
                         videoToggle(true)
                         console.log('Data reset:', data.status);
                     })
                     .catch(err => console.error('Reset error:', err));
-
                 }, 1000)
             } else {
-                // videoToggle
-                imgAlter.innerHTML = `<h1>tutup mata dalam: ${timeLeft}</h1>`;
+                videoToggle(false, `<h1>tutup mata dalam: ${timeLeft}</h1>`)
+                // imgAlter.innerHTML = `<h1>tutup mata dalam: ${timeLeft}</h1>`;
                 timeLeft -= 1;
             }
         }, 1000);
