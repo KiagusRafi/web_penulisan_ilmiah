@@ -5,6 +5,8 @@ document.addEventListener('DOMContentLoaded', () => {
     const img = document.getElementById('frames');
     const morse = document.getElementById('morse');
     const resText = document.getElementById('alphabet');
+    const quitButton = document.getElementById('quit-button');
+    const columns = document.getElementById('columns')
     const eventSource = new EventSource('/results');
     let showVideo = true;
     let isPaused = false;
@@ -75,7 +77,22 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         }, 1000);
     }
+
+    function quit(){
+        fetch('/quit', { method: 'POST' })
+        .then(response => {
+            if (response.ok) {
+                alert("Stream stopped.");
+            } else {
+                alert("Failed to stop.");
+            }
+        })
+        .then(data => {
+            columns.innerHTML = '<h1>Restart halaman untuk mengulang.</h1>'
+        });
+    }
     
     btn.addEventListener('click', pause);
     calibrateButton.addEventListener('click', calibrate)
+    quitButton.addEventListener('click', quit);
 });

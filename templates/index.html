@@ -6,35 +6,38 @@
     <title>kedapkedipnitnut</title>
     <link rel="icon" href="/assets/my_apolocheese.png" />
     <!-- stylesheet -->
-    <!-- <link
+    <link
       rel="stylesheet"
       href="{{ url_for('static', filename='css/styles.css') }}"
-    /> -->
+    />
     <!-- <link rel="stylesheet" href="/static/css/styles.css" /> -->
     <!-- Load external script -->
     <script src="{{ url_for('static', filename='script.js') }}"></script>
   </head>
   <body>
-    <h1>welcome to pubg mobile</h1>
-    <h3>-.- . -.. .- .--. -.- . -.. .. .--.</h3>
-    <br />
-    <div id="frame-container">
-      <img
-        id="frames"
-        style="display: block"
-        src="{{ url_for('video') }}"
-        alt="harusnya ada gambar disini"
-        width="50%"
-      />
-      <div id="img-alter" style="display: none"></div>
-    </div>
-    <div id="right-side">
-      <button id="toggleBtn">Pause</button>
-      <button id="calibrate-button" style="display: inline-block">
-        Calibrate
-      </button>
-      <div class="text-box" id="morse"></div>
-      <div class="text-box" id="alphabet"></div>
+    <div id="columns">
+      <div id="frame-container">
+        <img
+          id="frames"
+          style="display: block"
+          src="{{ url_for('video') }}"
+          alt="harusnya ada gambar disini"
+        />
+        <div id="img-alter" style="display: none"><h1>hai</h1></div>
+        <button id="toggleBtn">Pause</button>
+        <button id="calibrate-button">Calibrate</button>
+        <button id="quit-button">Quit</button>
+      </div>
+      <div id="right-side">
+        <div class="output-container">
+          <label for="text-box"><h2>Input:</h2></label>
+          <div class="text-box" id="morse"></div>
+        </div>
+        <div class="output-container">
+          <label for="alphabet"><h2>Terjemahan:</h2></label>
+          <div class="text-box" id="alphabet"></div>
+        </div>
+      </div>
     </div>
   </body>
 </html>

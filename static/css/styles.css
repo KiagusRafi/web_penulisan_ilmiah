@@ -1,8 +1,69 @@
 body{
-    font-family: 'Franklin Gothic Medium', 'Arial Narrow', Arial, sans-serif;
-    color: red;
+    /* height: 100vh; */
+    color: azure;
+    background-color: #1b1b32;
+    /* overflow: hidden; */
+}
+#columns{
+    display: flex;
+    height: max-content;
+}
+#frame-container{
+    flex: 50%;
+    text-align: center;
+    /* padding-top: 2%; */
+    /* position: relative; */
+}
+#frames{
+    width: 98%;
+    padding: 0;
+    border: solid white;
+}
+#right-side{
+    flex: 50%;
+    padding: 0 1em;
+}
+.output-container{
+    display: block;
+    height: 49%;
+    color: white;
+}
+.text-box{
+    display: block;
+    padding: 0 1%;
+    color: #F9D436;
+    height: 75%;
+    overflow-y: auto;
+    overflow-x: hidden;
+    border-style: solid;
+    border-color: azure;
 }
 
-h1{
-    font-family: Impact, Haettenschweiler, 'Arial Narrow Bold', sans-serif
+button {
+  color: azure;
+  padding: 1em;
+  text-align: center;
+  text-decoration: none;
+  display: inline-block;
+  width: 49%;
+  margin: 1em 0;
+}
+#toggleBtn{
+    background-color: #FA0045;
+}
+#calibrate-button{
+    background-color: #4C44FA;
+}
+#quit-button{
+    background-color: red;
+    width: 99%;
+}
+#toggleBtn:hover{
+    background-color: #FA903C;
+}
+#calibrate-button:hover{
+    background-color: #6990FA;
+}
+#quit-button:hover{
+    background-color: maroon;
 }
