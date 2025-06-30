@@ -28,6 +28,8 @@ text_update_event = threading.Event()
 morse = "" # the morse code conveyed by the user's right eyelid.
 hasil = "" # the alphabetic translation of said morse code.
 
+stop_event = threading.Event()
+
 # ini namanya "decorator"
 @app.route('/')
 def index():
@@ -50,6 +52,12 @@ def toggle_stream():
 def reset_data():
     reset_requested.set()
     return {'status': 'reset done'}
+
+@app.route('/quit', methods=['POST'])
+def quit_stream():
+    stop_event.set()  # Signal the loop to exit
+    reset_data()
+    return "Stopped", 200
 
 # Server-Sent Events (SSE)
 # to send hasil and morse strings to the page.
@@ -74,7 +82,11 @@ def results():
     return Response(event_stream(), content_type='text/event-stream')
 
 def generate_frames():
+    stop_event.clear()
+
     cap = cv2.VideoCapture(0)
+
+    global morse, hasil
 
     idList = [160, 144, 158, 153, 33, 133]
     detector = FaceMeshDetector(target=idList)
@@ -85,7 +97,7 @@ def generate_frames():
     swMerem = 0 # stopwatch for merem.
     swMelek = time.time() # stop watch for melek.
 
-    while True:
+    while not stop_event.is_set():
         # pausing point. pausing event handler.
         pause_event.wait()
 
@@ -146,7 +158,7 @@ def generate_frames():
                 sd = np.std(ratios, dtype = np.float32) # the standard deviation.
                 
                 # to write calibration progress on the live feed images. 
-                cv2.putText(img, f"tunggu: {len(ratios)}/100", (500, 20), cv2.FONT_ITALIC, 1, (255,255,0), 3)
+                cv2.putText(img, f"tunggu: {len(normalizedRatios)}/100", (400, 20), cv2.FONT_ITALIC, 1, (255,255,0), 3)
             else:
                 # z score : nilai deviasi dari titik data relatif rata-rata.
                 # contohnya z score 27 dari mean 23 dan sd 2 = 27-23/2 = 2 poin (melenceng sejauh 2 sd dari mean)    
@@ -154,7 +166,6 @@ def generate_frames():
 
                 if zScore > 1: # if melek
                     with text_lock:
-                        global morse
                         if abs(time.time()-swMelek) >= 2:
                             swMelek = time.time()
                             if morse[-2:] != "  ":
@@ -178,7 +189,6 @@ def generate_frames():
                     melek = False # set the status.
 
                 with text_lock:
-                    global hasil
                     hasil = decrypt(morse) # decrypting the given signals so far.
                     text_update_event.set()
 
