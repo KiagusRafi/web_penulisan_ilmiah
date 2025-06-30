@@ -153,10 +153,6 @@ def generate_frames():
                 zScore = (nRatio-nRatioAvg)/sd
 
                 if zScore > 1: # if melek
-                    # to add a white space if the user melek for 2s or more.
-                    # the decrypt() function only expects 2 space maximum in the end of string "morse" (2 spaces will be translated as 1, and 1 space will be the sign of the next letter).
-                    # given more, it will break.
-                    # blame whoever made that in geeksforgeeks.
                     with text_lock:
                         global morse
                         if abs(time.time()-swMelek) >= 2:
