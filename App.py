@@ -55,6 +55,8 @@ def reset_data():
 
 @app.route('/quit', methods=['POST'])
 def quit_stream():
+    if not pause_event.is_set():
+        pause_event.set()
     reset_data()
     global hasil, morse
     with text_lock:
