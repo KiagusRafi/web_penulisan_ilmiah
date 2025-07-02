@@ -55,8 +55,13 @@ def reset_data():
 
 @app.route('/quit', methods=['POST'])
 def quit_stream():
-    stop_event.set()  # Signal the loop to exit
     reset_data()
+    global hasil, morse
+    with text_lock:
+        hasil=""
+        morse=""
+        text_update_event.set()
+    stop_event.set()  # Signal the loop to exit
     return "Stopped", 200
 
 # Server-Sent Events (SSE)
